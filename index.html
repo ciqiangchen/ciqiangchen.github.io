@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频比较界面</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f0f4f8;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #2c3e50;
+            font-size: 2.5em;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+            padding-bottom: 15px;
+        }
+        h1:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(to right, #3498db, #2ecc71);
+            border-radius: 2px;
+        }
+        .module {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 40px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .module:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+        .module-header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 20px 25px;
+            font-size: 1.6em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+        .module-header:before {
+            content: '🎵';
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        .module-content {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        .language-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .language-tab {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            color: #7f8c8d;
+        }
+        .language-tab.active {
+            color: #3498db;
+            border-bottom: 3px solid #3498db;
+        }
+        .language-tab:hover:not(.active) {
+            color: #2980b9;
+            border-bottom: 3px solid #bdc3c7;
+        }
+        .language-content {
+            display: none;
+        }
+        .language-content.active {
+            display: block;
+        }
+        .folder-section {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+        }
+        .folder-section:hover {
+            transform: translateY(-3px);
+        }
+        .folder-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            display: flex;
+            align-items: center;
+        }
+        .folder-title:before {
+            content: '📁';
+            margin-right: 10px;
+        }
+        .audio-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+        .audio-item {
+            flex: 1;
+            min-width: 300px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        .audio-item:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .audio-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #34495e;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        audio {
+            width: 100%;
+            margin-bottom: 15px;
+            border-radius: 30px;
+        }
+        audio::-webkit-media-controls-panel {
+            background-color: #f0f4f8;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            transition: transform 0.3s ease;
+        }
+        img:hover {
+            transform: scale(1.02);
+        }
+        @media (max-width: 992px) {
+            .audio-container {
+                flex-direction: column;
+            }
+            .audio-item {
+                min-width: 100%;
+            }
+        }
+        @media (max-width: 768px) {
+            .module-content {
+                padding: 15px;
+            }
+            .language-tab {
+                padding: 10px 15px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>音频比较分析界面</h1>
+        
+        <!-- 模块一：1.1kHz -->
+        <div class="module">
+            <div class="module-header">比特率：1.1 kHz</div>
+            <div class="module-content">
+                <div class="language-tabs">
+                    <div class="language-tab active" onclick="switchLanguage(this, 'chinese-1')">中文</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'english-1')">英文</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'german-1')">德语</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'french-1')">法语</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'italian-1')">意大利语</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'polish-1')">波兰语</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'spanish-1')">西班牙语</div>
+                </div>
+                
+                <!-- 中文内容 -->
+                <div id="chinese-1" class="language-content active">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/中文/11_zh.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/中文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/中文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 8rvq 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">8rvq</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="8rvq/中文/11_zh.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="8rvq/中文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="8rvq/中文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- half 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">half</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="half/中文/11_zh.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="half/中文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="half/中文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 英文内容 -->
+                <div id="english-1" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/英文/1089_134691_000004_000000.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/英文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/英文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 8rvq 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">8rvq</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="8rvq/英文/1089_134691_000004_000000.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="8rvq/英文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="8rvq/英文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- half 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">half</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="half/英文/1089_134691_000004_000000.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="half/英文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="half/英文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 德语内容 -->
+                <div id="german-1" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/德语/3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/德语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/德语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 8rvq 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">8rvq</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="8rvq/德语/de_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="8rvq/德语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="8rvq/德语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- half 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">half</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="half/德语/de_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="half/德语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="half/德语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 德语内容 -->
+                <div id="german-3" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/德语/3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/德语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/德语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 50 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">50</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="50/德语/de_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="50/德语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="50/德语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 法语内容 -->
+                <div id="french-1" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/法语/1.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/法语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/法语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 8rvq 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">8rvq</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="8rvq/法语/Fr_1.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="8rvq/法语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="8rvq/法语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- half 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">half</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="half/法语/Fr_1.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="half/法语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="half/法语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 意大利语内容 -->
+                <div id="italian-1" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/意大利语/3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/意大利语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/意大利语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 8rvq 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">8rvq</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="8rvq/意大利语/it_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="8rvq/意大利语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="8rvq/意大利语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- half 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">half</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="half/意大利语/it_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="half/意大利语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="half/意大利语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 波兰语内容 -->
+                <div id="polish-1" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/波兰语/3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/波兰语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/波兰语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 8rvq 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">8rvq</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="8rvq/波兰语/bo_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="8rvq/波兰语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="8rvq/波兰语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- half 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">half</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="half/波兰语/bo_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="half/波兰语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="half/波兰语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 西班牙语内容 -->
+                <div id="spanish-1" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/西班牙语/5.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/西班牙语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/西班牙语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 8rvq 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">8rvq</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="8rvq/西班牙语/sp_5.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="8rvq/西班牙语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="8rvq/西班牙语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- half 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">half</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="half/西班牙语/sp_5.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="half/西班牙语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="half/西班牙语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 模块二：4.4kHz -->
+        <div class="module">
+            <div class="module-header">比特率：4.4 kHz</div>
+            <div class="module-content">
+                <div class="language-tabs">
+                    <div class="language-tab active" onclick="switchLanguage(this, 'chinese-2')">中文</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'english-2')">英文</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'german-2')">德语</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'french-2')">法语</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'italian-2')">意大利语</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'polish-2')">波兰语</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'spanish-2')">西班牙语</div>
+                </div>
+                
+                <!-- 中文内容 -->
+                <div id="chinese-2" class="language-content active">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/中文/11_zh.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/中文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/中文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- HIfi 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">HIfi</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="HIfi/中文/11_zh.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="HIfi/中文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="HIfi/中文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 12.5 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">12.5</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="12.5/中文/11_zh.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="12.5/中文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="12.5/中文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 英文内容 -->
+                <div id="english-2" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/英文/1089_134691_000004_000000.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/英文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/英文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- HIfi 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">HIfi</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="HIfi/英文/1089_134691_000004_000000.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="HIfi/英文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="HIfi/英文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 12.5 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">12.5</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="12.5/英文/1089_134691_000004_000000.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="12.5/英文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="12.5/英文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 德语内容 -->
+                <div id="german-2" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/德语/3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/德语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/德语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- HIfi 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">HIfi</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="HIfi/德语/de_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="HIfi/德语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="HIfi/德语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 12.5 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">12.5</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="12.5/德语/de_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="12.5/德语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="12.5/德语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 德语内容 -->
+                <div id="german-3" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/德语/3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/德语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/德语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 50 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">50</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="50/德语/de_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="50/德语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="50/德语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 法语内容 -->
+                <div id="french-2" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/法语/1.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/法语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/法语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- HIfi 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">HIfi</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="HIfi/法语/Fr_1.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="HIfi/法语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="HIfi/法语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 12.5 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">12.5</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="12.5/法语/Fr_1.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="12.5/法语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="12.5/法语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 意大利语内容 -->
+                <div id="italian-2" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/意大利语/3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/意大利语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/意大利语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- HIfi 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">HIfi</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="HIfi/意大利语/it_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="HIfi/意大利语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="HIfi/意大利语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 12.5 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">12.5</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="12.5/意大利语/it_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="12.5/意大利语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="12.5/意大利语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 波兰语内容 -->
+                <div id="polish-2" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/波兰语/3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/波兰语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/波兰语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- HIfi 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">HIfi</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="HIfi/波兰语/bo_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="HIfi/波兰语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="HIfi/波兰语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 12.5 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">12.5</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="12.5/波兰语/bo_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="12.5/波兰语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="12.5/波兰语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 西班牙语内容 -->
+                <div id="spanish-2" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/西班牙语/5.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/西班牙语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/西班牙语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- HIfi 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">HIfi</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="HIfi/西班牙语/sp_5.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="HIfi/西班牙语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="HIfi/西班牙语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 12.5 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">12.5</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="12.5/西班牙语/sp_5.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="12.5/西班牙语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="12.5/西班牙语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 模块三：17.6kHz -->
+        <div class="module">
+            <div class="module-header">比特率：17.6 kHz</div>
+            <div class="module-content">
+                <div class="language-tabs">
+                    <div class="language-tab active" onclick="switchLanguage(this, 'chinese-3')">中文</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'english-3')">英文</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'german-3')">德语</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'french-3')">法语</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'italian-3')">意大利语</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'polish-3')">波兰语</div>
+                    <div class="language-tab" onclick="switchLanguage(this, 'spanish-3')">西班牙语</div>
+                </div>
+                
+                <!-- 中文内容 -->
+                <div id="chinese-3" class="language-content active">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/中文/11_zh.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/中文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/中文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 50 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">50</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="50/中文/11_zh.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="50/中文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="50/中文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 英文内容 -->
+                <div id="english-3" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/英文/1089_134691_000004_000000.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/英文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/英文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 50 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">50</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="50/英文/1089_134691_000004_000000.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="50/英文/波形.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="50/英文/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchLanguage(tab, contentId) {
+            // 获取所有标签和内容
+            const tabs = tab.parentElement.getElementsByClassName('language-tab');
+            const contents = tab.parentElement.parentElement.getElementsByClassName('language-content');
+            
+            // 移除所有active类
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active');
+            }
+            for (let i = 0; i < contents.length; i++) {
+                contents[i].classList.remove('active');
+            }
+            
+            // 添加active类到当前标签和内容
+            tab.classList.add('active');
+            document.getElementById(contentId).classList.add('active');
+        }
+    </script>
+                </div>
+                
+                <!-- 德语内容 -->
+                <div id="german-3" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/德语/3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/德语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/德语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 50 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">50</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="50/德语/de_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="50/德语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="50/德语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 法语内容 -->
+                <div id="french-3" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/法语/1.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/法语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/法语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 50 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">50</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="50/法语/Fr_1.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="50/法语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="50/法语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 意大利语内容 -->
+                <div id="italian-3" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/意大利语/3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/意大利语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/意大利语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 50 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">50</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="50/意大利语/it_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="50/意大利语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="50/意大利语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 波兰语内容 -->
+                <div id="polish-3" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/波兰语/3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/波兰语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/波兰语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 50 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">50</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="50/波兰语/bo_3.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="50/波兰语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="50/波兰语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 西班牙语内容 -->
+                <div id="spanish-3" class="language-content">
+                    <!-- Raw 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">Raw</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="raw/西班牙语/5.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="raw/西班牙语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="raw/西班牙语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 50 文件夹 -->
+                    <div class="folder-section">
+                        <div class="folder-title">50</div>
+                        <div class="audio-container">
+                            <div class="audio-item">
+                                <div class="audio-title">原始语音</div>
+                                <audio controls>
+                                    <source src="50/西班牙语/sp_5.wav" type="audio/wav">
+                                    您的浏览器不支持音频元素
+                                </audio>
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">波形图</div>
+                                <img src="50/西班牙语/波形图.png" alt="波形图">
+                            </div>
+                            <div class="audio-item">
+                                <div class="audio-title">语谱图</div>
+                                <img src="50/西班牙语/语谱图.png" alt="语谱图">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchLanguage(tab, contentId) {
+            // 获取所有标签和内容
+            const tabs = tab.parentElement.getElementsByClassName('language-tab');
+            const contents = tab.parentElement.parentElement.getElementsByClassName('language-content');
+            
+            // 移除所有active类
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active');
+            }
+            for (let i = 0; i < contents.length; i++) {
+                contents[i].classList.remove('active');
+            }
+            
+            // 添加active类到当前标签和内容
+            tab.classList.add('active');
+            document.getElementById(contentId).classList.add('active');
+        }
+    </script>
+</body>
+</html>
